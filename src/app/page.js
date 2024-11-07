@@ -1,95 +1,107 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { useState } from 'react';
+import styles from './page.module.css';
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [website, setWebsite] = useState('');
+  const [banner, setBanner] = useState('');
+  const [otherBanner, setOtherBanner] = useState('');
+  const [mode, setMode] = useState('');
+  const [response, setResponse] = useState(null);
+  const [errors, setErrors] = useState({});
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  const handleSubmit = async () => {
+    const newErrors = {};
+    const urlPattern = /^(https:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(\/.*)?$/; // More comprehensive URL validation
+
+    if (!website || !urlPattern.test(website)) newErrors.website = true;
+    if (!banner) newErrors.banner = true;
+    if (banner === 'Other' && !otherBanner) newErrors.otherBanner = true;
+    if (!mode) newErrors.mode = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+
+    try {
+      const bannerValue = banner === 'Other' ? otherBanner : banner === 'I am not sure' ? '' : banner;
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ website, banner: bannerValue, mode }),
+      });
+
+      const data = await res.json();
+      setResponse(data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.form}>
+        <input
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          placeholder="Website (must start with https://)"
+          className={`${styles.input} ${errors.website ? styles.error : ''}`}
+        />
+        <select
+          value={banner}
+          onChange={(e) => setBanner(e.target.value)}
+          className={`${styles.select} ${errors.banner ? styles.error : ''}`}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+          <option value="">Select Banner</option>
+          <option value="Cookiebot">Cookiebot</option>
+          <option value="Borlabs Cookie">Borlabs Cookie</option>
+          <option value="Usercentrics">Usercentrics</option>
+          <option value="EU Cookie">EU Cookie</option>
+          <option value="Pandectes">Pandectes</option>
+          <option value="Consentmanager">Consentmanager</option>
+          <option value="I am not sure">I am not sure</option>
+          <option value="Other">Other</option>
+        </select>
+        {banner === 'Other' && (
+          <input
+            value={otherBanner}
+            onChange={(e) => setOtherBanner(e.target.value)}
+            placeholder="Cookie Banner Name"
+            required
+            className={`${styles.input} ${errors.otherBanner ? styles.error : ''}`}
           />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        )}
+        <select
+          value={mode}
+          onChange={(e) => setMode(e.target.value)}
+          className={`${styles.select} ${errors.mode ? styles.error : ''}`}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          <option value="">Select Mode</option>
+          <option value="Google Only">Google Only</option>
+          <option value="All">All</option>
+        </select>
+        <button
+          onClick={handleSubmit}
+          className={styles.button}
         >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Submit
+        </button>
+        {response && (
+          <div className={styles.response}>
+            <h3>Response:</h3>
+            <p><strong>Message:</strong> {response.message}</p>
+            <p><strong>Website:</strong> {response.website}</p>
+            <p><strong>Banner:</strong> {response.banner}</p>
+            <p><strong>Mode:</strong> {response.mode}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
