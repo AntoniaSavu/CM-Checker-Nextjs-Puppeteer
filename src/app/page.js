@@ -10,6 +10,8 @@ export default function Home() {
   const [mode, setMode] = useState('');
   const [response, setResponse] = useState(null);
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [websiteError, setWebsiteError] = useState('');
 
   const handleSubmit = async () => {
     const newErrors = {};
@@ -27,6 +29,7 @@ export default function Home() {
 
     setErrors({});
 
+    setIsLoading(true);
     try {
       const bannerValue = banner === 'Other' ? otherBanner : banner === 'I am not sure' ? '' : banner;
       const res = await fetch('/api/analyze', {
@@ -41,17 +44,32 @@ export default function Home() {
       setResponse(data);
     } catch (error) {
       console.error('Error:', error);
+      setResponse({ message: 'An error occurred', status: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleWebsiteChange = (e) => {
+    const value = e.target.value;
+    setWebsite(value);
+    
+    if (value && !value.startsWith('https://')) {
+      setWebsiteError('Website must start with https://');
+    } else {
+      setWebsiteError('');
     }
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.form}>
+        {websiteError && <p className={styles.errorMessage}>{websiteError}</p>}
         <input
           value={website}
-          onChange={(e) => setWebsite(e.target.value)}
+          onChange={handleWebsiteChange}
           placeholder="Website (must start with https://)"
-          className={`${styles.input} ${errors.website ? styles.error : ''}`}
+          className={`${styles.input} ${websiteError ? styles.error : ''}`}
         />
         <select
           value={banner}
@@ -92,13 +110,26 @@ export default function Home() {
         >
           Submit
         </button>
-        {response && (
-          <div className={styles.response}>
-            <h3>Response:</h3>
+        {isLoading ? (
+          <div className={styles.loading}>Analyzing website...</div>
+        ) : response && (
+          <div className={`${styles.response} ${styles[response.status]}`}>
+            <h3>Analysis Results:</h3>
+            <p><strong>Status:</strong> {response.status}</p>
             <p><strong>Message:</strong> {response.message}</p>
             <p><strong>Website:</strong> {response.website}</p>
             <p><strong>Banner:</strong> {response.banner}</p>
             <p><strong>Mode:</strong> {response.mode}</p>
+            {response.details && response.details.length > 0 && (
+              <div>
+                <h4>Details:</h4>
+                <ul>
+                  {response.details.map((detail, index) => (
+                    <li key={index}>{detail}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
