@@ -67,7 +67,7 @@ function getBannerSelectors(banner) {
 }
 
 // Export the main function to be used by the API route
-async function checkWebsite({ website, banner, mode }) {
+async function checkWebsite({ website, banner, otherBanner, mode }) {
     // Initialize result object
     let result = {
         message: '',
@@ -77,6 +77,13 @@ async function checkWebsite({ website, banner, mode }) {
         details: [],
         status: 'success'
     };
+
+    // Check if the selected banner is "Other" and if the user has typed a value
+    if (banner === 'Other' && otherBanner) {
+        result.message = "We do not yet support this banner. Please reach out to us for a manual check!";
+        result.status = 'error';
+        return result; // Return early with the error message
+    }
 
     try {
         const browser = await puppeteer.launch();
@@ -176,7 +183,7 @@ async function checkWebsite({ website, banner, mode }) {
 
                     if (found) {
                         detectedBanner = bannerName;
-                        console.log(bannerName);
+                        result.banner = detectedBanner;
                         if (bannerName === "EU Cookie") {
                             const buttonText = await page.evaluate((selector) => {
                                 const container = document.querySelector(selector);
@@ -279,8 +286,10 @@ async function checkWebsite({ website, banner, mode }) {
 
                 console.log('\nFinished capturing all requests');
             } else {
-                console.log('\nWe could not find any cookie banner on your website');
-            }
+                result.message = "We could not find the cookie banner on your website. Please reach out to us for a manual check."
+                result.status = 'error';
+                await browser.close();
+                return result; }
         } catch (error) {
             console.log('Error while detecting or interacting with cookie banner:', error);
             result.message = `Error detecting cookie banner: ${error.message}`;
@@ -297,10 +306,12 @@ async function checkWebsite({ website, banner, mode }) {
             );
 
             if (ga4OrGadsRequestsBeforeAccepting && !advancedConsentMode) {
-                console.log("\nWARNING: GA4 or Google Ads has been detected on your page before accepting consent! This is not legal and can lead to fines. Please contact us!");
+                result.message = "WARNING: GA4 or Google Ads has been detected on your page before accepting consent! This is not legal and can lead to fines. Please contact us!";
+                result.status = 'error';
                 await browser.close();
-                return;  // Terminate the script
-            }
+                return result;
+                
+                }
 
             ga4OrGadsRequestsAfterAccepting = requestsAfterAccepting.some(req => 
                 req.name === "Google Analytics 4" || req.name === "Google Ads"
@@ -312,13 +323,13 @@ async function checkWebsite({ website, banner, mode }) {
 
             console.log("\nConclusion:");
             if (advancedConsentMode) {
-                console.log("You are using advanced consent mode. This is legally controversial and can lead to fines. Please contact us!");
+                result.message="You are using advanced consent mode. This is legally controversial and can lead to fines. Please contact us!";
             } else if (!ga4OrGadsRequestsAfterAccepting) {
-                console.log("No GA4 or Google Ads requests detected after accepting consent. Please check your implementation.");
+                result.message="No GA4 or Google Ads requests detected after accepting consent. Please check your implementation.";
             } else if (ga4OrGadsRequestsAfterAccepting && !gcsParameterFound) {
-                console.log("Tracking starts after consent, but Google Consent Mode doesn't seem to be enabled. Contact us!");
+                result.message="Tracking starts after consent, but Google Consent Mode doesn't seem to be enabled. Contact us!";
             } else if (ga4OrGadsRequestsAfterAccepting && gcsParameterFound) {
-                console.log("Everything works correctly!");
+               result.message="Everything works correctly!";
             }
         }
 

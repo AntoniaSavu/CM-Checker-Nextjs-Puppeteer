@@ -28,16 +28,17 @@ export default function Home() {
     }
 
     setErrors({});
+    setIsLoading(true); // Show loading indicator
 
-    setIsLoading(true);
     try {
-      const bannerValue = banner === 'Other' ? otherBanner : banner === 'I am not sure' ? '' : banner;
+      const bannerValue = banner === 'Other' ? otherBanner : (banner === 'I am not sure' ? '' : banner);
+      
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ website, banner: bannerValue, mode }),
+        body: JSON.stringify({ website, banner: bannerValue, otherBanner, mode }),
       });
 
       const data = await res.json();
@@ -46,7 +47,7 @@ export default function Home() {
       console.error('Error:', error);
       setResponse({ message: 'An error occurred', status: 'error' });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Hide loading indicator
     }
   };
 
@@ -95,15 +96,24 @@ export default function Home() {
             className={`${styles.input} ${errors.otherBanner ? styles.error : ''}`}
           />
         )}
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value)}
-          className={`${styles.select} ${errors.mode ? styles.error : ''}`}
-        >
-          <option value="">Select Mode</option>
-          <option value="Google Only">Google Only</option>
-          <option value="All">All</option>
-        </select>
+        <div className={styles.selectWithInfo}>
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value)}
+            className={`${styles.select} ${errors.mode ? styles.error : ''}`}
+          >
+            <option value="">Select Mode</option>
+            <option value="Google Only">Google Only</option>
+            <option value="All">All</option>
+          </select>
+          <span className={styles.infoIconContainer}>
+            <span className={styles.infoIcon}>?</span>
+            <span className={styles.tooltip}>The tool operates in two modes: "Google Only" and "All." 
+              The "Google Only" mode focuses solely on Google services and Google Consent Mode, while the "All"
+              mode captures requests from various vendors, including Meta.
+            </span>
+          </span>
+        </div>
         <button
           onClick={handleSubmit}
           className={styles.button}
@@ -111,7 +121,10 @@ export default function Home() {
           Submit
         </button>
         {isLoading ? (
-          <div className={styles.loading}>Analyzing website...</div>
+          <div className={styles.loading}>
+            <div className={styles.spinner}></div>
+            <p>Analyzing website. This can take up to 2 minutes...</p>
+          </div>
         ) : response && (
           <div className={`${styles.response} ${styles[response.status]}`}>
             <h3>Analysis Results:</h3>
@@ -133,6 +146,8 @@ export default function Home() {
           </div>
         )}
       </div>
+
+     
     </div>
   );
 }

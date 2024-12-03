@@ -2,7 +2,7 @@ import { checkWebsite } from '../../cm_checker';
 
 export async function POST(req) {
     try {
-        const { website, banner, mode } = await req.json();
+        const { website, banner, otherBanner, mode } = await req.json();
 
         // Validate inputs
         if (!website || !website.startsWith('https://')) {
@@ -16,7 +16,7 @@ export async function POST(req) {
         }
 
         // Run the website check
-        const result = await checkWebsite({ website, banner, mode });
+        const result = await checkWebsite({ website, banner, otherBanner, mode });
 
         return new Response(JSON.stringify(result), {
             status: 200,
