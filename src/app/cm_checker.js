@@ -1,5 +1,7 @@
 const puppeteer = require('puppeteer');
 const url = require('url');
+const fs = require('fs');
+const path = require('path');
 
 // Dictionary of tracking services and their identifiers
 const dictionary = {
@@ -47,7 +49,8 @@ function getBannerSelectors(banner) {
             '.usercentrics-button[data-testid="accept-all-button"]'
         ],
         "Pandectes": [
-            'button[aria-label="allow cookies"].cc-btn.cc-btn-decision.cc-allow'
+            'button[aria-label="allow cookies"].cc-btn.cc-btn-decision.cc-allow',
+            'a.cc-btn.cc-btn-decision.cc-allow'
         ],
         "EU Cookie": [
             '#ws_eu-cookie-container'
@@ -106,7 +109,8 @@ async function checkWebsite({ website, banner, mode }) {
         // Navigate to website
         await page.goto(website, { waitUntil: 'networkidle0', timeout: 30000 });
         
-        result.details.push(`Loaded ${website}`);
+
+
 
         // Wait additional time to ensure all initial requests are captured
         await delay(5000);
@@ -149,15 +153,9 @@ async function checkWebsite({ website, banner, mode }) {
             const selectors = getBannerSelectors(banner);
             let detectedBanner = null;
 
-            // Log the selectors we're looking for
-            console.log('\nLooking for banner selectors:', selectors);
-
-
             if (typeof selectors === 'object' && !Array.isArray(selectors)) {
                 // If banner is not specified, check all selectors
                 for (const [bannerName, selectorList] of Object.entries(selectors)) {
-                    console.log(`\nChecking ${bannerName} selectors:`, selectorList);
-                    
                     const found = await page.evaluate((selectors, bannerName) => {
                         if (bannerName === "EUCookie") {
                             const container = document.querySelector(selectors[0]);
@@ -178,7 +176,8 @@ async function checkWebsite({ website, banner, mode }) {
 
                     if (found) {
                         detectedBanner = bannerName;
-                        if (bannerName === "EUCookie") {
+                        console.log(bannerName);
+                        if (bannerName === "EU Cookie") {
                             const buttonText = await page.evaluate((selector) => {
                                 const container = document.querySelector(selector);
                                 const buttons = container.querySelectorAll('button');
@@ -225,23 +224,40 @@ async function checkWebsite({ website, banner, mode }) {
                 console.log(`Specific banner found:`, found);
 
                 if (found) {
-                    await page.evaluate((selectors) => {
-                        for (const selector of selectors) {
-                            const acceptAllButton = document.querySelector(selector);
-                            if (acceptAllButton) {
-                                acceptAllButton.click();
-                                return;
+                    if (banner === "EU Cookie") {
+                        const buttonText = await page.evaluate((selector) => {
+                            const container = document.querySelector(selector);
+                            const buttons = container.querySelectorAll('button');
+                            if (buttons.length > 0) {
+                                const lastButton = buttons[buttons.length - 1];
+                                lastButton.click();
+                                return lastButton.textContent.trim();
                             }
+                            return null;
+                        }, selectors[0]); // Use the first selector for EU Cookie
+                        
+                        if (buttonText) {
+                            console.log(`Clicked EU Cookie button with text: "${buttonText}"`);
+                        } else {
+                            console.log('No button found in EU Cookie banner');
                         }
-                    }, selectors);
+                    } else {
+                        await page.evaluate((selectors) => {
+                            for (const selector of selectors) {
+                                const acceptAllButton = document.querySelector(selector);
+                                if (acceptAllButton) {
+                                    acceptAllButton.click();
+                                    return;
+                                }
+                            }
+                        }, selectors);
+                    }
                     detectedBanner = banner;
                 }
             }
 
             if (detectedBanner) {
-                console.log(`\nDetected ${detectedBanner} banner`);
-                console.log('Accepted all cookies');
-                acceptedCookies = true;
+                console.log(`\nDetected ${detectedBanner} banner`); console.log('Accepted all cookies'); acceptedCookies = true;
 
                 // Wait longer for any new network activity to settle
                 await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 }).catch(() => {});
