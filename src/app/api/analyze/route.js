@@ -15,7 +15,7 @@ export async function POST(req) {
             });
         }
 
-        // Run the website check
+        // Run the website check, imported from cm_checker.js
         const result = await checkWebsite({ website, banner, otherBanner, mode });
 
         return new Response(JSON.stringify(result), {
