@@ -79,6 +79,8 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
     };
 
     // Check if the selected banner is "Other" and if the user has typed a value
+    // maybe later to be fetch info to us about the banner typed in as suggestions
+    // for further updates
     if (banner === 'Other' && otherBanner) {
         result.message = "We do not yet support this banner. Please reach out to us for a manual check!";
         result.status = 'error';
@@ -122,7 +124,7 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
         // Wait additional time to ensure all initial requests are captured
         await delay(5000);
 
-        console.log('\nRequests before accepting:');
+        //console.log('\nRequests before accepting:');
         let illegalRequestFound = false;
         let onlyG100RequestsFound = true;
         let requestsFoundBeforeAccepting = [];
@@ -131,7 +133,7 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
             requestsBeforeAccepting.forEach(req => {
                 if (mode.toLowerCase() === "google only") {
                     if (req.name === "Google Analytics 4" || req.name === "Google Ads") {
-                        console.log(`Found a ${req.name} request${req.gcs ? ` with gcs value: ${req.gcs}` : ''}`);
+                        //console.log(`Found a ${req.name} request${req.gcs ? ` with gcs value: ${req.gcs}` : ''}`);
                         requestsFoundBeforeAccepting.push(`${req.name}${req.gcs ? ` (gcs: ${req.gcs})` : ''}`);
                         if (!req.gcs || req.gcs !== "G100") {      
                             illegalRequestFound = true;
@@ -139,12 +141,12 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
                         }
                     }
                 } else {
-                    console.log(`Found a ${req.name} request${req.gcs ? ` with gcs value: ${req.gcs}` : ''}`);
+                    //console.log(`Found a ${req.name} request${req.gcs ? ` with gcs value: ${req.gcs}` : ''}`);
                     requestsFoundBeforeAccepting.push(`${req.name}${req.gcs ? ` (gcs: ${req.gcs})` : ''}`);
                 }
             });
         } else {
-            console.log('No relevant requests found before accepting');
+            //console.log('No relevant requests found before accepting');
         }
 
         if (onlyG100RequestsFound && requestsFoundBeforeAccepting.length > 0) {
@@ -167,19 +169,19 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
                         if (bannerName === "EUCookie") {
                             const container = document.querySelector(selectors[0]);
                             const hasButtons = container && container.querySelectorAll('button').length > 0;
-                            console.log(`EUCookie container found: ${!!container}, has buttons: ${hasButtons}`);
+                            //console.log(`EUCookie container found: ${!!container}, has buttons: ${hasButtons}`);
                             return hasButtons;
                         }
                         
                         const elements = selectors.map(selector => {
                             const el = document.querySelector(selector);
-                            console.log(`Selector ${selector} found: ${!!el}`);
+                            //console.log(`Selector ${selector} found: ${!!el}`);
                             return el;
                         });
                         return elements.some(el => el !== null);
                     }, selectorList, bannerName);
 
-                    console.log(`${bannerName} found:`, found);
+                    //console.log(`${bannerName} found:`, found);
 
                     if (found) {
                         detectedBanner = bannerName;
@@ -197,9 +199,9 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
                             }, selectorList[0]);
                             
                             if (buttonText) {
-                                console.log(`Clicked EU Cookie button with text: "${buttonText}"`);
+                                //console.log(`Clicked EU Cookie button with text: "${buttonText}"`);
                             } else {
-                                console.log('No button found in EU Cookie banner');
+                                //console.log('No button found in EU Cookie banner');
                             }
                         } else {
                             await page.evaluate((selectors) => {
@@ -217,18 +219,18 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
                 }
             } else {
                 // If banner is specified, use the provided selectors
-                console.log(`\nChecking specific banner (${banner}) selectors:`, selectors);
+                //console.log(`\nChecking specific banner (${banner}) selectors:`, selectors);
                 
                 const found = await page.evaluate((selectors) => {
                     const elements = selectors.map(selector => {
                         const el = document.querySelector(selector);
-                        console.log(`Selector ${selector} found: ${!!el}`);
+                        //console.log(`Selector ${selector} found: ${!!el}`);
                         return el;
                     });
                     return elements.some(el => el !== null);
                 }, selectors);
 
-                console.log(`Specific banner found:`, found);
+                //console.log(`Specific banner found:`, found);
 
                 if (found) {
                     if (banner === "EU Cookie") {
@@ -244,9 +246,9 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
                         }, selectors[0]); // Use the first selector for EU Cookie
                         
                         if (buttonText) {
-                            console.log(`Clicked EU Cookie button with text: "${buttonText}"`);
+                            //console.log(`Clicked EU Cookie button with text: "${buttonText}"`);
                         } else {
-                            console.log('No button found in EU Cookie banner');
+                            //console.log('No button found in EU Cookie banner');
                         }
                     } else {
                         await page.evaluate((selectors) => {
@@ -264,34 +266,34 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
             }
 
             if (detectedBanner) {
-                console.log(`\nDetected ${detectedBanner} banner`); console.log('Accepted all cookies'); acceptedCookies = true;
+                //console.log(`\nDetected ${detectedBanner} banner`); //console.log('Accepted all cookies'); acceptedCookies = true;
 
                 // Wait longer for any new network activity to settle
                 await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 }).catch(() => {});
 
-                console.log('\nRequests after accepting:');
+                //console.log('\nRequests after accepting:');
                 if (requestsAfterAccepting.length > 0) {
                     requestsAfterAccepting.forEach(req => {
                         if (mode.toLowerCase() === "google only") {
                             if (req.name === "Google Analytics 4" || req.name === "Google Ads") {
-                                console.log(`Found a ${req.name} request${req.gcs ? ` with gcs value: ${req.gcs}` : ''}`);
+                                //console.log(`Found a ${req.name} request${req.gcs ? ` with gcs value: ${req.gcs}` : ''}`);
                             }
                         } else {
-                            console.log(`Found a ${req.name} request${req.gcs ? ` with gcs value: ${req.gcs}` : ''}`);
+                            //console.log(`Found a ${req.name} request${req.gcs ? ` with gcs value: ${req.gcs}` : ''}`);
                         }
                     });
                 } else {
-                    console.log('No relevant requests found after accepting');
+                    //console.log('No relevant requests found after accepting');
                 }
 
-                console.log('\nFinished capturing all requests');
+                //console.log('\nFinished capturing all requests');
             } else {
                 result.message = "We could not find the cookie banner on your website. Please reach out to us for a manual check."
                 result.status = 'error';
                 await browser.close();
                 return result; }
         } catch (error) {
-            console.log('Error while detecting or interacting with cookie banner:', error);
+            //console.log('Error while detecting or interacting with cookie banner:', error);
             result.message = `Error detecting cookie banner: ${error.message}`;
             result.status = 'error';
         }
@@ -301,7 +303,7 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
         let gcsParameterFound = false;
 
         if (mode.toLowerCase() === "google only") {
-            ga4OrGadsRequestsBeforeAccepting = requestsBeforeAccepting.some(req => 
+            ga4OrGadsRequestsBeforeAccepting = requestsBeforeAccepting.some(req =>
                 (req.name === "Google Analytics 4" || req.name === "Google Ads") && (!req.gcs || req.gcs !== "G100")
             );
 
@@ -311,25 +313,45 @@ async function checkWebsite({ website, banner, otherBanner, mode }) {
                 await browser.close();
                 return result;
                 
-                }
+            }
 
-            ga4OrGadsRequestsAfterAccepting = requestsAfterAccepting.some(req => 
+            ga4OrGadsRequestsAfterAccepting = requestsAfterAccepting.some(req =>
                 req.name === "Google Analytics 4" || req.name === "Google Ads"
             );
 
-            gcsParameterFound = requestsAfterAccepting.some(req => 
+            gcsParameterFound = requestsAfterAccepting.some(req =>
                 (req.name === "Google Analytics 4" || req.name === "Google Ads") && req.gcs && req.gcs !== "G100"
             );
 
-            console.log("\nConclusion:");
+            //console.log("\nConclusion:");
             if (advancedConsentMode) {
-                result.message="You are using advanced consent mode. This is legally controversial and can lead to fines. Please contact us!";
+                result.message = "You are using advanced consent mode. This is legally controversial and can lead to fines. Please contact us!";
             } else if (!ga4OrGadsRequestsAfterAccepting) {
-                result.message="No GA4 or Google Ads requests detected after accepting consent. Please check your implementation.";
+                result.message = "No GA4 or Google Ads requests detected after accepting consent. Please check your implementation.";
             } else if (ga4OrGadsRequestsAfterAccepting && !gcsParameterFound) {
-                result.message="Tracking starts after consent, but Google Consent Mode doesn't seem to be enabled. Contact us!";
+                result.message = "Tracking starts after consent, but Google Consent Mode doesn't seem to be enabled. Contact us!";
             } else if (ga4OrGadsRequestsAfterAccepting && gcsParameterFound) {
-               result.message="Everything works correctly!";
+                result.message = "Everything works correctly!";
+            }
+        }
+        else {
+            // Print requests found before and after accepting in a user-friendly format
+            result.message += "Requests before accepting:\n";
+            if (requestsBeforeAccepting.length > 0) {
+                requestsBeforeAccepting.forEach(req => {
+                    result.message += `- ${req.name}${req.gcs ? ` (GCS value: ${req.gcs})` : ''}\n`;
+                });
+            } else {
+                result.message += "None found\n";
+            }
+
+            result.message += "Requests after accepting:\n";
+            if (requestsAfterAccepting.length > 0) {
+                requestsAfterAccepting.forEach(req => {
+                    result.message += `- ${req.name}${req.gcs ? ` (GCS value: ${req.gcs})` : ''}\n`;
+                });
+            } else {
+                result.message += "None found\n";
             }
         }
 
